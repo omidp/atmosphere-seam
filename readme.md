@@ -50,9 +50,14 @@ public class SocketManagedService
     Broadcaster broadcaster;
     
     @Ready
-    public void ready()
+    public void ready(AtmosphereResource r)
     {
-        
+        if(Identity.instance().isLoggedIn())
+        {
+            String uname = Identity.instance().getCredentials().getUsername();
+            BroadcasterFactory broadcasterFactory = r.getAtmosphereConfig().getBroadcasterFactory();
+            Broadcaster lookup = broadcasterFactory.lookup("/echo/"+uname, true);
+        }
     }
     
     @Disconnect
