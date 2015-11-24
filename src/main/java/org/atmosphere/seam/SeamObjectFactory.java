@@ -21,10 +21,10 @@ public class SeamObjectFactory implements AtmosphereObjectFactory<Object>
     public <T, U extends T> T newClassInstance(Class<T> classType, Class<U> defaultType) throws InstantiationException,
             IllegalAccessException
     {
-        U newInstance = (U) Contexts.getApplicationContext().get(classType.getName());
-        if (newInstance != null)
-            return newInstance;
-        newInstance = defaultType.newInstance();
+        if(Contexts.isApplicationContextActive() == false)
+            throw new IllegalArgumentException("AtmosphereSeamServlet is not configured");
+        Contexts.getApplicationContext().remove(classType.getName());
+        U newInstance = defaultType.newInstance();
         Contexts.getApplicationContext().set(classType.getName(), newInstance);
         return newInstance;
     }

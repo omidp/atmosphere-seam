@@ -10,6 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.atmosphere.cpr.AtmosphereFramework;
+import org.atmosphere.cpr.AtmosphereFrameworkInitializer;
 import org.atmosphere.cpr.AtmosphereRequestImpl;
 import org.atmosphere.cpr.AtmosphereResponseImpl;
 import org.jboss.seam.contexts.Lifecycle;
@@ -17,8 +18,9 @@ import org.jboss.seam.servlet.ContextualHttpServletRequest;
 import org.jboss.seam.servlet.ServletApplicationMap;
 
 /**
- * This servlet supports Seam Component in Atmosphere Managedserivce 
- * it has been tested on JBoss eap6.2 and seam 2.3 
+ * This servlet supports Seam Component in Atmosphere Managedserivce it has been
+ * tested on JBoss eap6.2 and seam 2.3
+ * 
  * @author Omid Pourhadi
  *
  */
@@ -27,19 +29,47 @@ public class AtmosphereSeamServlet extends HttpServlet
 
     private ServletContext context;
 
-    AtmosphereFramework seamAtmosphereFramework;
+    protected final AtmosphereFrameworkInitializer initializer;
+
+    public AtmosphereSeamServlet()
+    {
+        this(false);
+    }
+
+    /**
+     * Create an Atmosphere Servlet.
+     *
+     * @param isFilter
+     *            true if this instance is used as an
+     *            {@link org.atmosphere.cpr.AtmosphereFilter}
+     */
+    public AtmosphereSeamServlet(boolean isFilter)
+    {
+        this(isFilter, true);
+    }
+
+    /**
+     * Create an Atmosphere Servlet.
+     *
+     * @param isFilter
+     *            true if this instance is used as an
+     *            {@link org.atmosphere.cpr.AtmosphereFilter}
+     * @param autoDetectHandlers
+     */
+    public AtmosphereSeamServlet(boolean isFilter, boolean autoDetectHandlers)
+    {
+        initializer = new AtmosphereFrameworkInitializer(isFilter, autoDetectHandlers);
+    }
 
     @Override
     public void init(ServletConfig config) throws ServletException
     {
-        super.init(config);
         context = config.getServletContext();
         try
         {
             Lifecycle.setupApplication(new ServletApplicationMap(context));
-            seamAtmosphereFramework = new AtmosphereFramework(false, true);
-            seamAtmosphereFramework.setUseNativeImplementation(true);
-            seamAtmosphereFramework.init(config);
+            configureFramework(config, true);
+            super.init(config);
         }
         finally
         {
@@ -47,10 +77,15 @@ public class AtmosphereSeamServlet extends HttpServlet
         }
     }
 
+    protected void configureFramework(ServletConfig sc, boolean init) throws ServletException
+    {
+        initializer.configureFramework(sc, init, false, AtmosphereFramework.class);
+    }
+
     @Override
     public void destroy()
     {
-        seamAtmosphereFramework.destroy();
+        initializer.destroy();
     }
 
     /**
@@ -172,11 +207,11 @@ public class AtmosphereSeamServlet extends HttpServlet
         final HttpServletRequest request = req;
         final HttpServletResponse resp = res;
         new ContextualHttpServletRequest(request) {
-            
+
             @Override
             public void process() throws Exception
             {
-                seamAtmosphereFramework.doCometSupport(AtmosphereRequestImpl.wrap(request), AtmosphereResponseImpl.wrap(resp));
+                initializer.framework().doCometSupport(AtmosphereRequestImpl.wrap(request), AtmosphereResponseImpl.wrap(resp));
             }
         }.run();
     }
