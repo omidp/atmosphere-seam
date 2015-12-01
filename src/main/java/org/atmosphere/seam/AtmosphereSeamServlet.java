@@ -9,6 +9,7 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.atmosphere.container.JBossWebCometSupport;
 import org.atmosphere.cpr.AtmosphereFramework;
 import org.atmosphere.cpr.AtmosphereFrameworkInitializer;
 import org.atmosphere.cpr.AtmosphereRequestImpl;
@@ -16,6 +17,8 @@ import org.atmosphere.cpr.AtmosphereResponseImpl;
 import org.jboss.seam.contexts.Lifecycle;
 import org.jboss.seam.servlet.ContextualHttpServletRequest;
 import org.jboss.seam.servlet.ServletApplicationMap;
+import org.jboss.servlet.http.HttpEvent;
+import org.jboss.servlet.http.HttpEventServlet;
 
 /**
  * This servlet supports Seam Component in Atmosphere Managedserivce it has been
@@ -24,7 +27,7 @@ import org.jboss.seam.servlet.ServletApplicationMap;
  * @author Omid Pourhadi
  *
  */
-public class AtmosphereSeamServlet extends HttpServlet
+public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServlet
 {
 
     private ServletContext context;
@@ -214,6 +217,11 @@ public class AtmosphereSeamServlet extends HttpServlet
                 initializer.framework().doCometSupport(AtmosphereRequestImpl.wrap(request), AtmosphereResponseImpl.wrap(resp));
             }
         }.run();
+    }
+
+    public void event(HttpEvent event) throws IOException, ServletException
+    {
+        event.getHttpServletRequest().setAttribute(JBossWebCometSupport.HTTP_EVENT, event);
     }
 
 }
