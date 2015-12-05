@@ -1,6 +1,6 @@
 # Atmosphere-Seam Integration
 
-This module is based on atmosphere-native-runtime project and is only tested on Jboss eap 6.4 and JBoss Seam 2.3
+This module is based on atmosphere-native-runtime project and is only tested on Jboss eap 6.4 and (https://github.com/omidp/seam)[https://github.com/omidp/seam]
   
 ##Configuration
 
@@ -22,15 +22,7 @@ This module is based on atmosphere-native-runtime project and is only tested on 
 		<init-param>
 			<param-name>org.atmosphere.cpr.asyncSupport</param-name>
 			<param-value>org.atmosphere.container.JBossAsyncSupportWithWebSocket</param-value>
-		</init-param>
-		<init-param>
-			<param-name>org.atmosphere.cpr.sessionSupport</param-name>
-			<param-value>true</param-value>
-		</init-param>
-		<init-param>
-			<param-name>org.atmosphere.cpr.sessionCreate</param-name>
-			<param-value>false</param-value>
-		</init-param>
+		</init-param>		
 		<load-on-startup>0</load-on-startup>
 		<async-supported>true</async-supported>
 	</servlet>

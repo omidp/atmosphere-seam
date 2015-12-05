@@ -217,6 +217,7 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
             @Override
             public void process() throws Exception
             {
+                request.setAttribute("createSession", false);
                 initializer.framework().doCometSupport(AtmosphereRequestImpl.wrap(request), AtmosphereResponseImpl.wrap(resp));
             }
         }.run();
@@ -227,7 +228,7 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
         final HttpServletRequest req = httpEvent.getHttpServletRequest();
         final HttpServletResponse res = httpEvent.getHttpServletResponse();
         req.setAttribute(JBossWebCometSupport.HTTP_EVENT, httpEvent);
-        new ContextualHttpServletRequest(req) {
+        new ContextualHttpServletRequest(req, res) {
 
             @Override
             public void process() throws Exception
@@ -259,11 +260,9 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
                 }
                 else
                 {
-
                     initializer.framework().doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
                 }
             }
-
         }.run();
 
     }
