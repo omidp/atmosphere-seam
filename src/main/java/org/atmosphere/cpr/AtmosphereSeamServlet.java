@@ -1,4 +1,4 @@
-package org.atmosphere.seam;
+package org.atmosphere.cpr;
 
 import java.io.IOException;
 
@@ -9,7 +9,10 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.atmosphere.container.JBossAsyncSupportWithWebSocket;
 import org.atmosphere.container.JBossWebCometSupport;
+import org.atmosphere.cpr.AsyncSupport;
+import org.atmosphere.cpr.AsynchronousProcessor;
 import org.atmosphere.cpr.AtmosphereFramework;
 import org.atmosphere.cpr.AtmosphereFrameworkInitializer;
 import org.atmosphere.cpr.AtmosphereRequestImpl;
@@ -22,7 +25,7 @@ import org.jboss.servlet.http.HttpEventServlet;
 
 /**
  * This servlet supports Seam Component in Atmosphere Managedserivce it has been
- * tested on JBoss eap6.2 and seam 2.3
+ * tested on JBoss eap6.4 and seam 2.3
  * 
  * @author Omid Pourhadi
  *
@@ -219,9 +222,50 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
         }.run();
     }
 
-    public void event(HttpEvent event) throws IOException, ServletException
+    public void event(final HttpEvent httpEvent) throws IOException, ServletException
     {
-        event.getHttpServletRequest().setAttribute(JBossWebCometSupport.HTTP_EVENT, event);
+        final HttpServletRequest req = httpEvent.getHttpServletRequest();
+        final HttpServletResponse res = httpEvent.getHttpServletResponse();
+        req.setAttribute(JBossWebCometSupport.HTTP_EVENT, httpEvent);
+        new ContextualHttpServletRequest(req) {
+
+            @Override
+            public void process() throws Exception
+            {
+                if (!initializer.framework().isCometSupportSpecified && !initializer.framework().isCometSupportConfigured.getAndSet(true))
+                {
+                    synchronized (initializer.framework().asyncSupport)
+                    {
+                        if (!initializer.framework().asyncSupport.getClass().equals(JBossWebCometSupport.class)
+                                && !initializer.framework().asyncSupport.getClass().equals(JBossAsyncSupportWithWebSocket.class))
+                        {
+                            AsyncSupport current = initializer.framework().asyncSupport;
+
+                            initializer.framework().asyncSupport = new JBossWebCometSupport(initializer.framework().config);
+                            if (current instanceof AsynchronousProcessor)
+                            {
+                                ((AsynchronousProcessor) current).shutdown();
+                            }
+                            initializer.framework().asyncSupport.init(initializer.framework().config.getServletConfig());
+                        }
+                    }
+                }
+
+                boolean isWebSocket = req.getHeader("Upgrade") == null ? false : true;
+                if (isWebSocket && initializer.framework().asyncSupport.getClass().equals(JBossAsyncSupportWithWebSocket.class))
+                {
+
+                    ((JBossAsyncSupportWithWebSocket) initializer.framework().asyncSupport).dispatch(httpEvent);
+                }
+                else
+                {
+
+                    initializer.framework().doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
+                }
+            }
+
+        }.run();
+
     }
 
 }

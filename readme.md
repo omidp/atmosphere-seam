@@ -1,6 +1,6 @@
 # Atmosphere-Seam Integration
 
-this project is only tested on Jboss eap 6.2 and seam 2.3
+This module is based on atmosphere-native-runtime project and is only tested on Jboss eap 6.4 and JBoss Seam 2.3
   
 ##Configuration
 
@@ -31,10 +31,10 @@ this project is only tested on Jboss eap 6.2 and seam 2.3
 + add dependency
 
 ```
-<dependency>
+		<dependency>
 			<groupId>org.atmosphere.seam</groupId>
 			<artifactId>atmosphere-seam</artifactId>
-			<version>0.0.1</version>
+			<version>2.4.0</version>
 		</dependency>
 ```
 
