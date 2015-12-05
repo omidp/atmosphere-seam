@@ -19,6 +19,18 @@ This module is based on atmosphere-native-runtime project and is only tested on 
 			<param-name>org.atmosphere.cpr.objectFactory</param-name>
 			<param-value>org.atmosphere.seam.SeamObjectFactory</param-value>
 		</init-param>		
+		<init-param>
+			<param-name>org.atmosphere.cpr.asyncSupport</param-name>
+			<param-value>org.atmosphere.container.JBossAsyncSupportWithWebSocket</param-value>
+		</init-param>
+		<init-param>
+			<param-name>org.atmosphere.cpr.sessionSupport</param-name>
+			<param-value>true</param-value>
+		</init-param>
+		<init-param>
+			<param-name>org.atmosphere.cpr.sessionCreate</param-name>
+			<param-value>false</param-value>
+		</init-param>
 		<load-on-startup>0</load-on-startup>
 		<async-supported>true</async-supported>
 	</servlet>
@@ -41,6 +53,8 @@ This module is based on atmosphere-native-runtime project and is only tested on 
 + Your ManagedService
 
 ```
+package ir.seam.ui.websocket;
+
 @SeamManagedService
 @ManagedService(path = "/echo/{uname}")
 public class SocketManagedService
