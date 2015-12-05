@@ -13,7 +13,7 @@ This module is based on atmosphere-native-runtime project and is only tested on 
 		<servlet-class>org.atmosphere.seam.AtmosphereSeamServlet</servlet-class>
 		<init-param>
 			<param-name>org.atmosphere.cpr.packages</param-name>
-			<param-value>ir.seam.ui.websocket, org.atmosphere.seam</param-value>
+			<param-value>org.seam.ui.websocket, org.atmosphere.seam</param-value>
 		</init-param>
 		<init-param>
 			<param-name>org.atmosphere.cpr.objectFactory</param-name>
@@ -53,7 +53,7 @@ This module is based on atmosphere-native-runtime project and is only tested on 
 + Your ManagedService
 
 ```
-package ir.seam.ui.websocket;
+package org.seam.ui.websocket;
 
 @SeamManagedService
 @ManagedService(path = "/echo/{uname}")
@@ -89,4 +89,14 @@ public class SocketManagedService
 }
 ```
 
+##How to use
 
+```
+		BroadcasterFactory bf = (BroadcasterFactory) Contexts.getApplicationContext().get("BroadcasterFactory");
+        Broadcaster lookup = bf.lookup("/seamws/" + username, false);
+        //String cid = Conversation.instance().getId();
+        if (lookup != null)
+        {
+            lookup.broadcast("comefromsocket");
+        }
+```
