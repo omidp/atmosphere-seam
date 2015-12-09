@@ -11,14 +11,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.atmosphere.container.JBossAsyncSupportWithWebSocket;
 import org.atmosphere.container.JBossWebCometSupport;
-import org.atmosphere.cpr.AsyncSupport;
-import org.atmosphere.cpr.AsynchronousProcessor;
-import org.atmosphere.cpr.AtmosphereFramework;
-import org.atmosphere.cpr.AtmosphereFrameworkInitializer;
-import org.atmosphere.cpr.AtmosphereRequestImpl;
-import org.atmosphere.cpr.AtmosphereResponseImpl;
 import org.jboss.seam.contexts.Lifecycle;
-import org.jboss.seam.servlet.ContextualHttpServletRequest;
 import org.jboss.seam.servlet.ServletApplicationMap;
 import org.jboss.servlet.http.HttpEvent;
 import org.jboss.servlet.http.HttpEventServlet;
@@ -212,12 +205,11 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
     {
         final HttpServletRequest request = req;
         final HttpServletResponse resp = res;
-        new ContextualHttpServletRequest(request) {
+        new AtmosphereContextualHttpServlet(req, res) {
 
             @Override
             public void process() throws Exception
             {
-                request.setAttribute("createSession", false);
                 initializer.framework().doCometSupport(AtmosphereRequestImpl.wrap(request), AtmosphereResponseImpl.wrap(resp));
             }
         }.run();
@@ -228,7 +220,8 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
         final HttpServletRequest req = httpEvent.getHttpServletRequest();
         final HttpServletResponse res = httpEvent.getHttpServletResponse();
         req.setAttribute(JBossWebCometSupport.HTTP_EVENT, httpEvent);
-        new ContextualHttpServletRequest(req, res) {
+
+        new AtmosphereContextualHttpServlet(req, res) {
 
             @Override
             public void process() throws Exception

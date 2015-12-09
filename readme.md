@@ -1,6 +1,6 @@
 # Atmosphere-Seam Integration
 
-This module is based on atmosphere-native-runtime project and is only tested on Jboss eap 6.4 and (https://github.com/omidp/seam)[https://github.com/omidp/seam]
+This module is based on atmosphere-native-runtime project and is only tested on Jboss eap 6.X and Jboss Seam 2.x
   
 ##Configuration
 
