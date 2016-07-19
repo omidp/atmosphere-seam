@@ -12,6 +12,8 @@ import javax.servlet.http.HttpServletResponse;
 import org.atmosphere.container.JBossAsyncSupportWithWebSocket;
 import org.atmosphere.container.JBossWebCometSupport;
 import org.jboss.seam.contexts.Lifecycle;
+import org.jboss.seam.contexts.ServletLifecycle;
+import org.jboss.seam.servlet.ContextualHttpServletRequest;
 import org.jboss.seam.servlet.ServletApplicationMap;
 import org.jboss.servlet.http.HttpEvent;
 import org.jboss.servlet.http.HttpEventServlet;
@@ -28,37 +30,7 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
 
     private ServletContext context;
 
-    protected final AtmosphereFrameworkInitializer initializer;
-
-    public AtmosphereSeamServlet()
-    {
-        this(false);
-    }
-
-    /**
-     * Create an Atmosphere Servlet.
-     *
-     * @param isFilter
-     *            true if this instance is used as an
-     *            {@link org.atmosphere.cpr.AtmosphereFilter}
-     */
-    public AtmosphereSeamServlet(boolean isFilter)
-    {
-        this(isFilter, true);
-    }
-
-    /**
-     * Create an Atmosphere Servlet.
-     *
-     * @param isFilter
-     *            true if this instance is used as an
-     *            {@link org.atmosphere.cpr.AtmosphereFilter}
-     * @param autoDetectHandlers
-     */
-    public AtmosphereSeamServlet(boolean isFilter, boolean autoDetectHandlers)
-    {
-        initializer = new AtmosphereFrameworkInitializer(isFilter, autoDetectHandlers);
-    }
+    AtmosphereFramework framework;
 
     @Override
     public void init(ServletConfig config) throws ServletException
@@ -67,7 +39,7 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
         try
         {
             Lifecycle.setupApplication(new ServletApplicationMap(context));
-            configureFramework(config, true);
+            framework = new AtmosphereFramework(config);
             super.init(config);
         }
         finally
@@ -76,15 +48,15 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
         }
     }
 
-    protected void configureFramework(ServletConfig sc, boolean init) throws ServletException
-    {
-        initializer.configureFramework(sc, init, false, AtmosphereFramework.class);
-    }
-
     @Override
     public void destroy()
     {
-        initializer.destroy();
+        if (framework != null)
+        {
+            framework.destroy();
+            framework = null;
+        }
+        Lifecycle.cleanupApplication();
     }
 
     /**
@@ -201,63 +173,47 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
      * @throws javax.servlet.ServletException
      */
     @Override
-    public void doPost(HttpServletRequest req, HttpServletResponse res) throws IOException, ServletException
+    public void doPost(final HttpServletRequest req, final HttpServletResponse res) throws IOException, ServletException
     {
-        final HttpServletRequest request = req;
-        final HttpServletResponse resp = res;
-        new AtmosphereContextualHttpServlet(req, res) {
+        try
+        {
 
-            @Override
-            public void process() throws Exception
-            {
-                initializer.framework().doCometSupport(AtmosphereRequestImpl.wrap(request), AtmosphereResponseImpl.wrap(resp));
-            }
-        }.run();
+            Lifecycle.setupApplication(new ServletApplicationMap(context));
+            ServletLifecycle.beginReinitialization(req, context);
+            framework.doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
+        }
+        finally
+        {
+            ServletLifecycle.endReinitialization();
+            Lifecycle.cleanupApplication();
+        }
     }
 
     public void event(final HttpEvent httpEvent) throws IOException, ServletException
     {
         final HttpServletRequest req = httpEvent.getHttpServletRequest();
         final HttpServletResponse res = httpEvent.getHttpServletResponse();
-        req.setAttribute(JBossWebCometSupport.HTTP_EVENT, httpEvent);
+        req.setAttribute(JBossWebCometSupport.HTTP_EVENT, httpEvent);      
+        try
+        {
 
-        new AtmosphereContextualHttpServlet(req, res) {
-
-            @Override
-            public void process() throws Exception
+            Lifecycle.setupApplication(new ServletApplicationMap(context));
+            ServletLifecycle.beginReinitialization(req, context);
+            boolean isWebSocket = req.getHeader("Upgrade") == null ? false : true;
+            if (isWebSocket && framework.asyncSupport.getClass().equals(JBossAsyncSupportWithWebSocket.class))
             {
-                if (!initializer.framework().isCometSupportSpecified && !initializer.framework().isCometSupportConfigured.getAndSet(true))
-                {
-                    synchronized (initializer.framework().asyncSupport)
-                    {
-                        if (!initializer.framework().asyncSupport.getClass().equals(JBossWebCometSupport.class)
-                                && !initializer.framework().asyncSupport.getClass().equals(JBossAsyncSupportWithWebSocket.class))
-                        {
-                            AsyncSupport current = initializer.framework().asyncSupport;
-
-                            initializer.framework().asyncSupport = new JBossWebCometSupport(initializer.framework().config);
-                            if (current instanceof AsynchronousProcessor)
-                            {
-                                ((AsynchronousProcessor) current).shutdown();
-                            }
-                            initializer.framework().asyncSupport.init(initializer.framework().config.getServletConfig());
-                        }
-                    }
-                }
-
-                boolean isWebSocket = req.getHeader("Upgrade") == null ? false : true;
-                if (isWebSocket && initializer.framework().asyncSupport.getClass().equals(JBossAsyncSupportWithWebSocket.class))
-                {
-
-                    ((JBossAsyncSupportWithWebSocket) initializer.framework().asyncSupport).dispatch(httpEvent);
-                }
-                else
-                {
-                    initializer.framework().doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
-                }
+                ((JBossAsyncSupportWithWebSocket) framework.asyncSupport).dispatch(httpEvent);
             }
-        }.run();
-
+            else
+            {
+                framework.doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
+            }
+        }
+        finally
+        {
+            ServletLifecycle.endReinitialization();
+            Lifecycle.cleanupApplication();
+        }
     }
 
 }
