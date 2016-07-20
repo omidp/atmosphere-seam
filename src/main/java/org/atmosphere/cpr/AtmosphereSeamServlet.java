@@ -21,7 +21,7 @@ import org.jboss.servlet.http.HttpEventServlet;
 
 /**
  * This servlet supports Seam Component in Atmosphere Managedserivce it has been
- * tested on JBoss eap6.4 and seam 2.3
+ * tested on JBoss eap6.4 and seam 2.x
  * 
  * @author Omid Pourhadi
  *
@@ -192,23 +192,24 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
         final HttpServletRequest req = httpEvent.getHttpServletRequest();
         final HttpServletResponse res = httpEvent.getHttpServletResponse();
         req.setAttribute(JBossWebCometSupport.HTTP_EVENT, httpEvent);
-
-        new AtmosphereContextualServlet(context, req) {
-
-            @Override
-            public void process() throws Exception
+        
+        try
+        {
+            ServletLifecycle.beginReinitialization(req, context);
+            boolean isWebSocket = req.getHeader("Upgrade") == null ? false : true;
+            if (isWebSocket && framework.asyncSupport.getClass().equals(JBossAsyncSupportWithWebSocket.class))
             {
-                boolean isWebSocket = req.getHeader("Upgrade") == null ? false : true;
-                if (isWebSocket && framework.asyncSupport.getClass().equals(JBossAsyncSupportWithWebSocket.class))
-                {
-                    ((JBossAsyncSupportWithWebSocket) framework.asyncSupport).dispatch(httpEvent);
-                }
-                else
-                {
-                    framework.doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
-                }
+                ((JBossAsyncSupportWithWebSocket) framework.asyncSupport).dispatch(httpEvent);
             }
-        }.run();
+            else
+            {
+                framework.doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
+            }
+        }
+        finally
+        {
+            ServletLifecycle.endReinitialization();
+        }
 
     }
 

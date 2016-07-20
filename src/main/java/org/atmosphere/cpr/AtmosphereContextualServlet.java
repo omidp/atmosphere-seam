@@ -10,6 +10,10 @@ import javax.servlet.http.HttpServletRequest;
 import org.jboss.seam.contexts.Lifecycle;
 import org.jboss.seam.contexts.ServletLifecycle;
 
+/**
+ * @author Omid Pourhadi
+ *
+ */
 public abstract class AtmosphereContextualServlet
 {
 
@@ -54,22 +58,23 @@ public abstract class AtmosphereContextualServlet
         {
             removeCounter();
             Lifecycle.endRequest();
-            throw ioe;
+            //throw ioe;
         }
         catch (ServletException se)
         {
             removeCounter();
             Lifecycle.endRequest();
-            throw se;
+            //throw se;
         }
         catch (Exception e)
         {
             removeCounter();
             Lifecycle.endRequest();
-            throw new ServletException(e);
+            //throw new ServletException(e);
         }
         finally
         {
+            //request ended
         }
         
     }
