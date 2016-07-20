@@ -1,6 +1,7 @@
 package org.atmosphere.cpr;
 
 import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletContext;
@@ -173,47 +174,42 @@ public class AtmosphereSeamServlet extends HttpServlet implements HttpEventServl
      * @throws javax.servlet.ServletException
      */
     @Override
-    public void doPost(final HttpServletRequest req, final HttpServletResponse res) throws IOException, ServletException
+    public void doPost(final HttpServletRequest request, final HttpServletResponse res) throws IOException, ServletException
     {
-        try
-        {
+        new AtmosphereContextualServlet(context, request) {
 
-            Lifecycle.setupApplication(new ServletApplicationMap(context));
-            ServletLifecycle.beginReinitialization(req, context);
-            framework.doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
-        }
-        finally
-        {
-            ServletLifecycle.endReinitialization();
-            Lifecycle.cleanupApplication();
-        }
+            @Override
+            public void process() throws Exception
+            {
+                framework.doCometSupport(AtmosphereRequestImpl.wrap(request), AtmosphereResponseImpl.wrap(res));
+            }
+        }.run();
+
     }
 
     public void event(final HttpEvent httpEvent) throws IOException, ServletException
     {
         final HttpServletRequest req = httpEvent.getHttpServletRequest();
         final HttpServletResponse res = httpEvent.getHttpServletResponse();
-        req.setAttribute(JBossWebCometSupport.HTTP_EVENT, httpEvent);      
-        try
-        {
+        req.setAttribute(JBossWebCometSupport.HTTP_EVENT, httpEvent);
 
-            Lifecycle.setupApplication(new ServletApplicationMap(context));
-            ServletLifecycle.beginReinitialization(req, context);
-            boolean isWebSocket = req.getHeader("Upgrade") == null ? false : true;
-            if (isWebSocket && framework.asyncSupport.getClass().equals(JBossAsyncSupportWithWebSocket.class))
+        new AtmosphereContextualServlet(context, req) {
+
+            @Override
+            public void process() throws Exception
             {
-                ((JBossAsyncSupportWithWebSocket) framework.asyncSupport).dispatch(httpEvent);
+                boolean isWebSocket = req.getHeader("Upgrade") == null ? false : true;
+                if (isWebSocket && framework.asyncSupport.getClass().equals(JBossAsyncSupportWithWebSocket.class))
+                {
+                    ((JBossAsyncSupportWithWebSocket) framework.asyncSupport).dispatch(httpEvent);
+                }
+                else
+                {
+                    framework.doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
+                }
             }
-            else
-            {
-                framework.doCometSupport(AtmosphereRequestImpl.wrap(req), AtmosphereResponseImpl.wrap(res));
-            }
-        }
-        finally
-        {
-            ServletLifecycle.endReinitialization();
-            Lifecycle.cleanupApplication();
-        }
+        }.run();
+
     }
 
 }
